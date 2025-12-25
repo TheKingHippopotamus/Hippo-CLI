@@ -109,8 +109,8 @@ HippoCLI follows a modular, layered architecture designed for maintainability an
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/HippoCLI.git
-cd HippoCLI
+git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
+cd Hippo-CLI
 pip install -e .
 ```
 
