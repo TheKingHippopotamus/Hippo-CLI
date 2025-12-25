@@ -22,6 +22,50 @@ def load_mapping(mapping_path: Path) -> List[TickerEntry]:
     return [TickerEntry.model_validate(item) for item in data]
 
 
+def save_mapping(mapping_path: Path, entries: List[TickerEntry]) -> None:
+    """Save ticker mapping entries to file."""
+    mapping_path.parent.mkdir(parents=True, exist_ok=True)
+    # Convert to dict and ensure id is string (matching file format)
+    data = []
+    for entry in entries:
+        entry_dict = entry.model_dump()
+        entry_dict["id"] = str(entry_dict["id"])  # Convert int to string
+        data.append(entry_dict)
+    with mapping_path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    logger.info("Saved %d entries to mapping file: %s", len(entries), mapping_path)
+
+
+def add_ticker_to_mapping(mapping_path: Path, ticker: str, name: Optional[str] = None) -> TickerEntry:
+    """Add a new ticker to the mapping file. Returns the created entry."""
+    records = load_mapping(mapping_path) if mapping_path.exists() else []
+    
+    # Check if ticker already exists
+    ticker_upper = ticker.strip().upper()
+    for rec in records:
+        if rec.ticker == ticker_upper:
+            logger.info("Ticker %s already exists in mapping", ticker_upper)
+            return rec
+    
+    # Find next available ID (convert to int for comparison)
+    existing_ids = {int(rec.id) for rec in records}
+    next_id_int = max(existing_ids, default=0) + 1
+    
+    # Create new entry (id will be int in model, converted to string when saving)
+    new_entry = TickerEntry(
+        id=next_id_int,
+        name=name or ticker_upper,
+        ticker=ticker_upper,
+    )
+    
+    # Add to records and save
+    records.append(new_entry)
+    save_mapping(mapping_path, records)
+    
+    logger.info("Added ticker %s to mapping with ID %s", ticker_upper, next_id_int)
+    return new_entry
+
+
 def validate_mapping(mapping_path: Path) -> Tuple[int, List[str]]:
     """Return (count, errors) for mapping validation."""
     errors: List[str] = []
@@ -45,26 +89,38 @@ def validate_mapping(mapping_path: Path) -> Tuple[int, List[str]]:
     return len(records), errors
 
 
-def validate_ndjson(ndjson_path: Path) -> Tuple[int, List[str]]:
-    """Validate each line of an NDJSON file as CompanyRecord."""
+def validate_json(json_path: Path) -> Tuple[int, List[str]]:
+    """Validate JSON file (array or single object) as CompanyRecord(s)."""
     errors: List[str] = []
-    if not ndjson_path.exists():
-        errors.append(f"NDJSON not found: {ndjson_path}")
+    if not json_path.exists():
+        errors.append(f"JSON not found: {json_path}")
         return 0, errors
 
     count = 0
-    with ndjson_path.open("r", encoding="utf-8") as f:
-        for line_number, line in enumerate(f, start=1):
-            if not line.strip():
-                continue
+    try:
+        with json_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        # Handle both array and single object
+        if isinstance(data, list):
+            records = data
+        elif isinstance(data, dict):
+            records = [data]
+        else:
+            errors.append(f"Invalid JSON structure: expected array or object, got {type(data).__name__}")
+            return 0, errors
+        
+        for idx, record in enumerate(records, start=1):
             try:
-                payload = json.loads(line)
-                CompanyRecord.model_validate(payload)
+                CompanyRecord.model_validate(record)
                 count += 1
             except ValidationError as exc:
-                errors.append(f"Line {line_number}: {exc}")
-            except json.JSONDecodeError as exc:
-                errors.append(f"Line {line_number}: invalid JSON ({exc})")
+                errors.append(f"Record {idx}: {exc}")
+    except json.JSONDecodeError as exc:
+        errors.append(f"Invalid JSON: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"Error reading file: {exc}")
+    
     return count, errors
 
 

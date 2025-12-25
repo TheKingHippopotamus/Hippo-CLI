@@ -12,35 +12,61 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _get_output_base_dir() -> Path:
+    """Determine the base directory for output storage.
+    
+    Checks for /app/data first (Docker mount), then /app/output, then REPO_ROOT.
+    When using /app/data, paths are relative to it directly (not /app/data/output).
+    """
+    # Check for /app/data (common Docker mount point)
+    docker_data_dir = Path("/app/data")
+    if docker_data_dir.exists():
+        return docker_data_dir
+    
+    # Check for /app/output (alternative Docker mount point)
+    docker_output_dir = Path("/app/output")
+    if docker_output_dir.exists():
+        return docker_output_dir
+    
+    # Fall back to REPO_ROOT / "output" for local development
+    return REPO_ROOT / "output"
+
+
 class PathSettings(BaseModel):
     """Filesystem locations with safe defaults rooted at the repository."""
 
     base_dir: Path = Field(default=REPO_ROOT)
-    data_dir: Path = Field(default_factory=lambda: REPO_ROOT / "data")
+    data_dir: Path = Field(default_factory=lambda: _get_output_base_dir())
     mapping_path: Path = Field(
-        default_factory=lambda: REPO_ROOT / "data/mappings/ticker_mapping.json"
+        default_factory=lambda: _get_output_base_dir() / "mappings" / "ticker_mapping.json"
     )
-    ndjson_output: Path = Field(
-        default_factory=lambda: REPO_ROOT / "data/json/company_details.ndjson"
+    json_output_dir: Path = Field(
+        default_factory=lambda: _get_output_base_dir() / "json"
     )
-    json_output: Path = Field(
-        default_factory=lambda: REPO_ROOT / "data/json/company_details.json"
-    )
-    csv_output_dir: Path = Field(default_factory=lambda: REPO_ROOT / "data/csv")
-    parquet_output: Path = Field(
-        default_factory=lambda: REPO_ROOT / "data/parquet/company_details.parquet"
-    )
-    sql_output: Path = Field(
-        default_factory=lambda: REPO_ROOT / "data/sql/company_details.sql"
-    )
+    csv_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "csv")
+    parquet_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "parquet")
+    sql_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "sql")
 
     def ensure_output_dirs(self) -> None:
         """Create output directories without touching existing data."""
+        self.json_output_dir.mkdir(parents=True, exist_ok=True)
         self.csv_output_dir.mkdir(parents=True, exist_ok=True)
-        self.parquet_output.parent.mkdir(parents=True, exist_ok=True)
-        self.sql_output.parent.mkdir(parents=True, exist_ok=True)
-        self.ndjson_output.parent.mkdir(parents=True, exist_ok=True)
-        self.json_output.parent.mkdir(parents=True, exist_ok=True)
+        self.parquet_output_dir.mkdir(parents=True, exist_ok=True)
+        self.sql_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    def get_ticker_paths(self, ticker: str) -> dict[str, Path]:
+        """Get all output paths for a specific ticker."""
+        ticker_upper = ticker.strip().upper()
+        return {
+            "json": self.json_output_dir / ticker_upper / f"{ticker_upper}_company_details.json",
+            "json_stock_price": self.json_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.json",
+            "csv": self.csv_output_dir / ticker_upper / f"{ticker_upper}_company_details.csv",
+            "csv_stock_price": self.csv_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.csv",
+            "parquet": self.parquet_output_dir / ticker_upper / f"{ticker_upper}_company_details.parquet",
+            "parquet_stock_price": self.parquet_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.parquet",
+            "sql": self.sql_output_dir / ticker_upper / f"{ticker_upper}_company_details.sql",
+            "sql_stock_price": self.sql_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.sql",
+        }
 
 
 class AppSettings(BaseSettings):
@@ -81,6 +107,28 @@ def load_settings(config_path: Optional[Path] = None) -> AppSettings:
                 if isinstance(loaded, dict):
                     data |= loaded
             break
+
+    # Resolve relative paths in YAML config relative to the output base directory
+    output_base = _get_output_base_dir()
+    if "paths" in data and isinstance(data["paths"], dict):
+        paths_data = data["paths"]
+        for key in ["mapping_path", "json_output_dir", "csv_output_dir", "parquet_output_dir", "sql_output_dir"]:
+            if key in paths_data:
+                path_value = paths_data[key]
+                if isinstance(path_value, str):
+                    path_obj = Path(path_value)
+                    # If relative path, resolve relative to output base
+                    if not path_obj.is_absolute():
+                        # If path starts with "output/", strip it when using Docker data dir
+                        path_str = str(path_obj)
+                        if str(output_base) == "/app/data" and path_str.startswith("output/"):
+                            # Remove "output/" prefix for Docker mount
+                            path_str = path_str[7:]  # len("output/") = 7
+                            paths_data[key] = str(output_base / path_str)
+                        else:
+                            paths_data[key] = str(output_base / path_obj)
+                    else:
+                        paths_data[key] = path_value
 
     settings = AppSettings(**data)
     settings.paths.ensure_output_dirs()

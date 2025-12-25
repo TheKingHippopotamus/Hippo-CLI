@@ -1,8 +1,12 @@
 [
   {
     "id": "1",
-    "name": "Alcoa Corp",
-    "ticker": "AA"
+    "name": "AAPL",
+    "ticker": "AAPL"
+  },
+  {
+    "id": "2",
+    "name": "MSFT",
+    "ticker": "MSFT"
   }
 ]
-

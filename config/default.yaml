@@ -5,10 +5,9 @@ concurrency: 4
 user_agent: "hippocli/0.1.0"
 
 paths:
-  mapping_path: "data/mappings/ticker_mapping.json"
-  ndjson_output: "data/json/company_details.ndjson"
-  json_output: "data/json/company_details.json"
-  csv_output_dir: "data/csv"
-  parquet_output: "data/parquet/company_details.parquet"
-  sql_output: "data/sql/company_details.sql"
+  mapping_path: "output/mappings/ticker_mapping.json"
+  json_output_dir: "output/json"
+  csv_output_dir: "output/csv"
+  parquet_output_dir: "output/parquet"
+  sql_output_dir: "output/sql"
 

@@ -13,14 +13,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY pyproject.toml .
+COPY README.md .
 COPY src/ ./src/
 COPY config/ ./config/
 
 # Install the package
 RUN pip install --no-cache-dir -e .
 
-# Create data directory
-RUN mkdir -p /app/data
+# Create output directory
+RUN mkdir -p /app/output
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
