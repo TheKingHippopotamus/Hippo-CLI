@@ -1,4 +1,0 @@
-Memory Usage Test Results
-========================
-Process | Memory (MB) | Peak Memory (MB)
---------|-------------|------------------

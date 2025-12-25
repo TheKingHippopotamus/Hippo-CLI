@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/ticker_mapping.schema.json",
+  "title": "Ticker Mapping Schema",
+  "description": "Schema for ticker_mapping.json - maps company IDs to names and ticker symbols",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "ticker"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique identifier for the company (sequential string starting from '1')",
+        "pattern": "^[0-9]+$",
+        "examples": ["1", "2", "2483"]
+      },
+      "name": {
+        "type": "string",
+        "description": "Full company name",
+        "minLength": 1,
+        "examples": ["Alcoa Corp", "Apple Inc.", "Microsoft Corporation"]
+      },
+      "ticker": {
+        "type": "string",
+        "description": "Stock ticker symbol (uppercase letters and numbers)",
+        "pattern": "^[A-Z0-9]+$",
+        "minLength": 1,
+        "maxLength": 10,
+        "examples": ["AA", "AAPL", "MSFT"]
+      }
+    },
+    "additionalProperties": false
+  },
+  "minItems": 0,
+  "uniqueItems": false
+}
+
+

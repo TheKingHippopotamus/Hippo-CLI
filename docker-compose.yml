@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  hippocli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hippocli
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: --help
+    stdin_open: true
+    tty: true
+

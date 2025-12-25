@@ -1,0 +1,14 @@
+base_url: "https://compoundeer.com/api/trpc/company.getByTicker"
+request_timeout: 30
+max_retries: 3
+concurrency: 4
+user_agent: "hippocli/0.1.0"
+
+paths:
+  mapping_path: "data/mappings/ticker_mapping.json"
+  ndjson_output: "data/json/company_details.ndjson"
+  json_output: "data/json/company_details.json"
+  csv_output_dir: "data/csv"
+  parquet_output: "data/parquet/company_details.parquet"
+  sql_output: "data/sql/company_details.sql"
+
