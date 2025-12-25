@@ -223,8 +223,8 @@ Leveraging Pydantic Settings for type-safe, validated configuration with multipl
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/hippocli.git
-cd hippocli
+git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
+cd Hippo-CLI
 
 # Install dependencies
 pip install -r requirements.txt
@@ -356,7 +356,7 @@ MIT License - See LICENSE file for details
 
 <div align="center">
 
-**Built with ❤️ for the financial data engineering community**
+**Built with ❤️ by [TheKingHippopotamus](https://github.com/TheKingHippopotamus) for the financial data engineering community**
 
 *Transforming raw data into actionable insights, one ticker at a time.*
 
