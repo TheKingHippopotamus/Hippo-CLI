@@ -1,15 +1,57 @@
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Testing & Coverage
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.venv/
-env/
-*.pyc
-.DS_Store
-.env
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.hypothesis/
+
+# Logs
 *.log
-*.parquet
-.cursor/
-.pytest_cache/
-__pycache__/
+*.log.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data files (optional - uncomment if you don't want to track data)
+# *.parquet
+# data/*.csv
+# data/*.json
+# data/*.ndjson
+# data/*.sql
 
