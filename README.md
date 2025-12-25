@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![HippoCLI](static/tickermaps.png)
+![HippoCLI]
 
 **A production-grade command-line toolkit for financial data acquisition, transformation, validation, and analytics**
 
