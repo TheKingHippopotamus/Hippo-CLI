@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from .analytics import analytics_from_json
@@ -255,6 +258,87 @@ def _run_validation(
     console.print("[green]Validation passed[/green]")
 
 
+def _get_project_status(settings: AppSettings) -> Dict[str, any]:
+    """Get current project status including tickers, files, etc."""
+    mapping_path = settings.paths.mapping_path
+    status: Dict[str, any] = {
+        "mapping_exists": mapping_path.exists(),
+        "mapping_count": 0,
+        "tickers_with_data": 0,
+        "tickers_with_all_formats": 0,
+        "ticker_details": [],
+    }
+    
+    if status["mapping_exists"]:
+        try:
+            records = load_mapping(mapping_path)
+            status["mapping_count"] = len(records)
+            
+            for record in records:
+                ticker_paths = settings.paths.get_ticker_paths(record.ticker)
+                has_json = ticker_paths["json"].exists()
+                has_csv = ticker_paths["csv"].exists()
+                has_parquet = ticker_paths["parquet"].exists()
+                has_sql = ticker_paths["sql"].exists()
+                
+                if has_json:
+                    status["tickers_with_data"] += 1
+                
+                if has_json and has_csv and has_parquet and has_sql:
+                    status["tickers_with_all_formats"] += 1
+                
+                status["ticker_details"].append({
+                    "ticker": record.ticker,
+                    "name": record.name,
+                    "has_json": has_json,
+                    "has_csv": has_csv,
+                    "has_parquet": has_parquet,
+                    "has_sql": has_sql,
+                })
+        except Exception:
+            pass
+    
+    return status
+
+
+def _display_status(settings: AppSettings) -> None:
+    """Display project status in a formatted table."""
+    status = _get_project_status(settings)
+    
+    console.print("\n[bold cyan]Project Status[/bold cyan]")
+    console.print("─" * 60)
+    
+    # Summary table
+    summary_table = Table(show_header=False, box=None, padding=(0, 2))
+    summary_table.add_row("[bold]Mapping file:[/bold]", 
+                          "[green]✓ Found[/green]" if status["mapping_exists"] else "[red]✗ Not found[/red]")
+    summary_table.add_row("[bold]Tickers in mapping:[/bold]", str(status["mapping_count"]))
+    summary_table.add_row("[bold]Tickers with data:[/bold]", str(status["tickers_with_data"]))
+    summary_table.add_row("[bold]Tickers with all formats:[/bold]", str(status["tickers_with_all_formats"]))
+    console.print(summary_table)
+    
+    # Detailed ticker table
+    if status["ticker_details"]:
+        ticker_table = Table(title="Ticker Details")
+        ticker_table.add_column("Ticker", style="cyan")
+        ticker_table.add_column("Name", style="white")
+        ticker_table.add_column("JSON", justify="center")
+        ticker_table.add_column("CSV", justify="center")
+        ticker_table.add_column("Parquet", justify="center")
+        ticker_table.add_column("SQL", justify="center")
+        
+        for detail in status["ticker_details"]:
+            ticker_table.add_row(
+                detail["ticker"],
+                detail["name"],
+                "[green]✓[/green]" if detail["has_json"] else "[red]✗[/red]",
+                "[green]✓[/green]" if detail["has_csv"] else "[red]✗[/red]",
+                "[green]✓[/green]" if detail["has_parquet"] else "[red]✗[/red]",
+                "[green]✓[/green]" if detail["has_sql"] else "[red]✗[/red]",
+            )
+        console.print(ticker_table)
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
@@ -274,19 +358,27 @@ def main(
 @app.command()
 def fetch(
     ctx: typer.Context,
+    ticker: Optional[str] = typer.Argument(None, help="Ticker symbol to fetch (optional, fetches all if not specified)."),
     mapping_path: Optional[Path] = typer.Option(
         None, "--mapping", help="Ticker mapping JSON file."
     ),
     output_json: Optional[Path] = typer.Option(
         None, "--out", help="Destination JSON file (optional, defaults to ticker directory)."
     ),
-    ticker: Optional[str] = typer.Option(None, "--ticker", help="Fetch a single ticker only."),
     resume: bool = typer.Option(
         False, "--resume", help="Skip existing files (resume mode)."
     ),
 ) -> None:
+    """Fetch financial data for ticker(s)."""
     settings: AppSettings = ctx.obj["settings"]
     mapping = _resolve_mapping_path(mapping_path, settings)
+    
+    if ticker:
+        ticker = ticker.upper().strip()
+        console.print(f"[cyan]Fetching data for {ticker}...[/cyan]")
+    else:
+        console.print("[cyan]Fetching data for all tickers...[/cyan]")
+    
     success, errors = fetch_and_write(
         settings=settings,
         mapping_file=mapping,
@@ -294,23 +386,29 @@ def fetch(
         single_ticker=ticker,
         resume=resume,
     )
-    console.print(f"[green]Completed[/green]: {success} records, [yellow]{errors} errors[/yellow]")
+    console.print(f"[green]✓ Completed:[/green] {success} records, [yellow]{errors} errors[/yellow]")
 
 
 @app.command()
 def validate(
     ctx: typer.Context,
+    ticker: Optional[str] = typer.Argument(None, help="Ticker symbol to validate (optional, validates all if not specified)."),
     mapping_path: Optional[Path] = typer.Option(
         None, "--mapping", help="Ticker mapping JSON file."
     ),
     json_path: Optional[Path] = typer.Option(
-        None, "--json", help="JSON file to validate (or ticker to validate all its files)."
-    ),
-    ticker: Optional[str] = typer.Option(
-        None, "--ticker", help="Validate all files for a specific ticker."
+        None, "--json", help="JSON file to validate."
     ),
 ) -> None:
+    """Validate data integrity for ticker(s)."""
     settings: AppSettings = ctx.obj["settings"]
+    
+    if ticker:
+        ticker = ticker.upper().strip()
+        console.print(f"[cyan]Validating {ticker}...[/cyan]")
+    else:
+        console.print("[cyan]Validating all tickers...[/cyan]")
+    
     _run_validation(settings, mapping_path, json_path, ticker)
 
 
@@ -334,23 +432,28 @@ def fix_mapping(
 @app.command()
 def convert(
     ctx: typer.Context,
+    ticker: Optional[str] = typer.Argument(None, help="Ticker symbol to convert (optional, converts all if not specified)."),
     json_path: Optional[Path] = typer.Option(None, "--json", help="Source JSON file."),
-    ticker: Optional[str] = typer.Option(None, "--ticker", help="Convert all formats for a specific ticker."),
     csv_out: Optional[Path] = typer.Option(None, "--csv-out", help="CSV output path."),
     parquet_out: Optional[Path] = typer.Option(None, "--parquet-out", help="Parquet output path."),
     sql_out: Optional[Path] = typer.Option(None, "--sql-out", help="SQL output path."),
 ) -> None:
+    """Convert JSON data to CSV, Parquet, and SQL formats."""
     settings: AppSettings = ctx.obj["settings"]
     
     if ticker:
+        ticker = ticker.upper().strip()
+        console.print(f"[cyan]Converting {ticker}...[/cyan]")
         _convert_ticker(ticker, settings, csv_out, parquet_out, sql_out)
-        console.print(f"[green]Conversion complete[/green] for {ticker}")
+        console.print(f"[green]✓ Conversion complete for {ticker}[/green]")
     elif json_path:
+        console.print(f"[cyan]Converting {json_path}...[/cyan]")
         _convert_json_file(json_path, settings, csv_out, parquet_out, sql_out)
-        console.print("[green]Conversion complete[/green]")
+        console.print("[green]✓ Conversion complete[/green]")
     else:
+        console.print("[cyan]Converting all tickers...[/cyan]")
         total_converted = _convert_all_tickers(settings)
-        console.print(f"[green]Conversion complete[/green]: {total_converted} tickers converted")
+        console.print(f"[green]✓ Conversion complete:[/green] {total_converted} tickers converted")
 
 
 @app.command()
@@ -370,6 +473,139 @@ def analytics(
     
     result = analytics_from_json(json_file, ticker=ticker, horizon_days=horizon_days, stock_price_json_path=stock_price_json)
     console.print_json(data=result)
+
+
+@app.command()
+def status(
+    ctx: typer.Context,
+) -> None:
+    """Display project status including tickers, files, and data availability."""
+    settings: AppSettings = ctx.obj["settings"]
+    _display_status(settings)
+
+
+@app.command()
+def list(
+    ctx: typer.Context,
+) -> None:
+    """List all tickers with their status."""
+    settings: AppSettings = ctx.obj["settings"]
+    status = _get_project_status(settings)
+    
+    if not status["ticker_details"]:
+        console.print("[yellow]No tickers found in mapping file[/yellow]")
+        return
+    
+    table = Table(title="All Tickers")
+    table.add_column("Ticker", style="cyan")
+    table.add_column("Name", style="white")
+    table.add_column("Status", style="green")
+    
+    for detail in status["ticker_details"]:
+        formats = []
+        if detail["has_json"]:
+            formats.append("JSON")
+        if detail["has_csv"]:
+            formats.append("CSV")
+        if detail["has_parquet"]:
+            formats.append("Parquet")
+        if detail["has_sql"]:
+            formats.append("SQL")
+        
+        status_text = ", ".join(formats) if formats else "[red]No data[/red]"
+        if len(formats) == 4:
+            status_text = "[green]Complete[/green]"
+        
+        table.add_row(detail["ticker"], detail["name"], status_text)
+    
+    console.print(table)
+
+
+@app.command()
+def setup(
+    ctx: typer.Context,
+    ticker: Optional[str] = typer.Argument(None, help="Ticker symbol to set up (optional)."),
+) -> None:
+    """Initial setup: create mapping file and fetch first ticker."""
+    settings: AppSettings = ctx.obj["settings"]
+    mapping = settings.paths.mapping_path
+    
+    # Ensure mapping file exists
+    if not mapping.exists():
+        mapping.parent.mkdir(parents=True, exist_ok=True)
+        mapping.write_text("[]", encoding="utf-8")
+        console.print(f"[green]Created mapping file:[/green] {mapping}")
+    
+    if ticker:
+        from .validator import add_ticker_to_mapping
+        add_ticker_to_mapping(mapping, ticker)
+        console.print(f"[green]Added ticker {ticker} to mapping[/green]")
+        
+        # Fetch data for the ticker
+        console.print(f"[cyan]Fetching data for {ticker}...[/cyan]")
+        success, errors = fetch_and_write(
+            settings=settings,
+            mapping_file=mapping,
+            single_ticker=ticker,
+            resume=False,
+        )
+        console.print(f"[green]Setup complete:[/green] {success} records fetched, [yellow]{errors} errors[/yellow]")
+    else:
+        console.print(f"[green]Mapping file ready:[/green] {mapping}")
+        console.print("[yellow]Tip:[/yellow] Use 'hippocli setup TICKER' to add and fetch a ticker")
+
+
+@app.command()
+def update(
+    ctx: typer.Context,
+    ticker: Optional[str] = typer.Argument(None, help="Ticker to update (optional, updates all if not specified)."),
+    skip_validate: bool = typer.Option(False, "--skip-validate", help="Skip validation step."),
+) -> None:
+    """Full pipeline: fetch + convert + validate for ticker(s)."""
+    settings: AppSettings = ctx.obj["settings"]
+    mapping = _resolve_mapping_path(None, settings)
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        # Step 1: Fetch
+        task1 = progress.add_task("[cyan]Fetching data...", total=None)
+        success, errors = fetch_and_write(
+            settings=settings,
+            mapping_file=mapping,
+            single_ticker=ticker,
+            resume=False,
+        )
+        progress.update(task1, completed=True)
+        console.print(f"[green]✓ Fetched:[/green] {success} records, [yellow]{errors} errors[/yellow]")
+        
+        # Step 2: Convert
+        task2 = progress.add_task("[cyan]Converting formats...", total=None)
+        if ticker:
+            try:
+                _convert_ticker(ticker, settings)
+                converted_count = 1
+            except typer.Exit:
+                converted_count = 0
+        else:
+            converted_count = _convert_all_tickers(settings)
+        progress.update(task2, completed=True)
+        console.print(f"[green]✓ Converted:[/green] {converted_count} ticker(s)")
+        
+        # Step 3: Validate
+        if not skip_validate:
+            task3 = progress.add_task("[cyan]Validating data...", total=None)
+            try:
+                _run_validation(settings, None, None, ticker)
+                progress.update(task3, completed=True)
+                console.print("[green]✓ Validation passed[/green]")
+            except typer.Exit:
+                progress.update(task3, completed=True)
+                console.print("[yellow]⚠ Validation found errors[/yellow]")
+        
+    console.print("[bold green]Update complete![/bold green]")
 
 
 def run() -> None:
@@ -400,106 +636,284 @@ def shell(
     setup_logging(log_level)
     settings: AppSettings = load_settings_with_env(config, env_file)
 
+    def show_status_summary() -> None:
+        """Display quick status summary."""
+        status = _get_project_status(settings)
+        console.print(Panel(
+            f"[bold]Tickers:[/bold] {status['mapping_count']} | "
+            f"[bold]With Data:[/bold] {status['tickers_with_data']} | "
+            f"[bold]Complete:[/bold] {status['tickers_with_all_formats']}",
+            title="[cyan]Project Status[/cyan]",
+            border_style="cyan",
+        ))
+
     def prompt_choice() -> str:
-        console.print("\n[bold cyan]Select an action:[/bold cyan]")
-        console.print("1) Fetch Data (Download Company Details -  JSON Format -- default )")
-        console.print("2) Convert (Convert JSON to CSV, Parquet, SQL,JSONL)")
-        console.print("3) Validate (Validate JSON, CSV, Parquet, SQL,JSONL)")
-        console.print("4) Analytics (Calculate financial metrics and statistics for a ticker)")
-        console.print("5) Fix mapping IDs (Fix mapping IDs in the mapping file -- If Needed)")
-        console.print("q) Quit")
-        return input("> ").strip().lower()
+        console.print("\n[bold cyan]╭─ HippoCLI Interactive Menu ────────────────────────────────────────╮[/bold cyan]")
+        show_status_summary()
+        console.print("\n[bold cyan]Workflows:[/bold cyan]")
+        console.print("  [yellow]1[/yellow]) Quick Start (Setup new ticker: fetch + convert + validate)")
+        console.print("  [yellow]2[/yellow]) Update All (Fetch + convert + validate all tickers)")
+        console.print("  [yellow]3[/yellow]) Full Pipeline (Complete workflow for specific ticker)")
+        console.print("\n[bold cyan]Actions:[/bold cyan]")
+        console.print("  [yellow]4[/yellow]) Fetch Data")
+        console.print("  [yellow]5[/yellow]) Convert Formats")
+        console.print("  [yellow]6[/yellow]) Validate Data")
+        console.print("  [yellow]7[/yellow]) Run Analytics")
+        console.print("\n[bold cyan]Utilities:[/bold cyan]")
+        console.print("  [yellow]8[/yellow]) View Status")
+        console.print("  [yellow]9[/yellow]) List Tickers")
+        console.print("  [yellow]f[/yellow]) Fix Mapping IDs")
+        console.print("\n  [yellow]q[/yellow]) Quit")
+        console.print("[bold cyan]╰───────────────────────────────────────────────────────────────────╯[/bold cyan]")
+        return input("\n[bold]Select:[/bold] ").strip().lower()
 
     def confirm_action(action_description: str) -> bool:
         """Prompt user for y/n confirmation before executing an action."""
-        response = input(f"Proceed with {action_description}? [y/N]: ").strip().lower()
+        response = input(f"\n[bold yellow]Proceed with {action_description}?[/bold yellow] [y/N]: ").strip().lower()
         return response == "y"
+    
+    def prompt_ticker(prompt_text: str = "Enter ticker", allow_blank: bool = True) -> Optional[str]:
+        """Prompt for ticker input."""
+        if allow_blank:
+            ticker = input(f"{prompt_text} (blank for all): ").strip() or None
+        else:
+            ticker = input(f"{prompt_text}: ").strip()
+            if not ticker:
+                console.print("[red]Ticker is required[/red]")
+                return None
+        return ticker.upper() if ticker else None
 
     while True:
         choice = prompt_choice()
         if choice in ("q", "quit", "exit"):
-            console.print("[green]Bye[/green]")
+            console.print("\n[green]Goodbye![/green]")
             break
 
-        if choice == "1":
+        # Workflows
+        if choice == "1":  # Quick Start
+            if not confirm_action("Quick Start (setup new ticker)"):
+                continue
+            ticker = prompt_ticker("Enter ticker to set up", allow_blank=False)
+            if not ticker:
+                continue
+            
+            from .validator import add_ticker_to_mapping
+            mapping = settings.paths.mapping_path
+            add_ticker_to_mapping(mapping, ticker)
+            console.print(f"[green]✓ Added {ticker} to mapping[/green]")
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                # Fetch
+                task1 = progress.add_task(f"[cyan]Fetching {ticker}...", total=None)
+                success, errors = fetch_and_write(
+                    settings=settings,
+                    mapping_file=mapping,
+                    single_ticker=ticker,
+                    resume=False,
+                )
+                progress.update(task1, completed=True)
+                
+                # Convert
+                task2 = progress.add_task(f"[cyan]Converting {ticker}...", total=None)
+                try:
+                    _convert_ticker(ticker, settings)
+                    progress.update(task2, completed=True)
+                except typer.Exit:
+                    progress.update(task2, completed=True)
+                    console.print(f"[red]Conversion failed for {ticker}[/red]")
+                    continue
+                
+                # Validate
+                task3 = progress.add_task(f"[cyan]Validating {ticker}...", total=None)
+                try:
+                    _run_validation(settings, None, None, ticker)
+                    progress.update(task3, completed=True)
+                except typer.Exit:
+                    progress.update(task3, completed=True)
+            
+            console.print(f"[bold green]✓ Quick Start complete for {ticker}![/bold green]")
+
+        elif choice == "2":  # Update All
+            if not confirm_action("Update All (fetch + convert + validate all tickers)"):
+                continue
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task1 = progress.add_task("[cyan]Fetching all tickers...", total=None)
+                success, errors = fetch_and_write(
+                    settings=settings,
+                    mapping_file=_resolve_mapping_path(None, settings),
+                    single_ticker=None,
+                    resume=False,
+                )
+                progress.update(task1, completed=True)
+                console.print(f"[green]✓ Fetched:[/green] {success} records, [yellow]{errors} errors[/yellow]")
+                
+                task2 = progress.add_task("[cyan]Converting all tickers...", total=None)
+                total = _convert_all_tickers(settings)
+                progress.update(task2, completed=True)
+                console.print(f"[green]✓ Converted:[/green] {total} tickers")
+                
+                task3 = progress.add_task("[cyan]Validating all tickers...", total=None)
+                try:
+                    _run_validation(settings, None, None, None)
+                    progress.update(task3, completed=True)
+                    console.print("[green]✓ Validation passed[/green]")
+                except typer.Exit:
+                    progress.update(task3, completed=True)
+                    console.print("[yellow]⚠ Validation found errors[/yellow]")
+            
+            console.print("[bold green]✓ Update All complete![/bold green]")
+
+        elif choice == "3":  # Full Pipeline
+            if not confirm_action("Full Pipeline (complete workflow)"):
+                continue
+            ticker = prompt_ticker("Enter ticker", allow_blank=False)
+            if not ticker:
+                continue
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task1 = progress.add_task(f"[cyan]Fetching {ticker}...", total=None)
+                success, errors = fetch_and_write(
+                    settings=settings,
+                    mapping_file=_resolve_mapping_path(None, settings),
+                    single_ticker=ticker,
+                    resume=False,
+                )
+                progress.update(task1, completed=True)
+                console.print(f"[green]✓ Fetched:[/green] {success} records, [yellow]{errors} errors[/yellow]")
+                
+                task2 = progress.add_task(f"[cyan]Converting {ticker}...", total=None)
+                try:
+                    _convert_ticker(ticker, settings)
+                    progress.update(task2, completed=True)
+                    console.print(f"[green]✓ Converted {ticker}[/green]")
+                except typer.Exit:
+                    progress.update(task2, completed=True)
+                    console.print(f"[red]Conversion failed for {ticker}[/red]")
+                    continue
+                
+                task3 = progress.add_task(f"[cyan]Validating {ticker}...", total=None)
+                try:
+                    _run_validation(settings, None, None, ticker)
+                    progress.update(task3, completed=True)
+                    console.print("[green]✓ Validation passed[/green]")
+                except typer.Exit:
+                    progress.update(task3, completed=True)
+                    console.print("[yellow]⚠ Validation found errors[/yellow]")
+            
+            console.print(f"[bold green]✓ Full Pipeline complete for {ticker}![/bold green]")
+
+        # Individual Actions
+        elif choice == "4":  # Fetch
             if not confirm_action("Fetch Data"):
                 continue
-            ticker = input("Single ticker (blank for all): ").strip() or None
+            ticker = prompt_ticker("Enter ticker")
             resume = input("Resume existing files? [y/N]: ").strip().lower() == "y"
-            mapping = input(f"Mapping path [{settings.paths.mapping_path}]: ").strip()
-            json_out = input("JSON output (blank for default ticker directory): ").strip()
-            mapping_path = Path(mapping) if mapping else None
-            output_path = Path(json_out) if json_out else None
-            fetch_and_write(
+            success, errors = fetch_and_write(
                 settings=settings,
-                mapping_file=_resolve_mapping_path(mapping_path, settings),
-                output_path=output_path,
+                mapping_file=_resolve_mapping_path(None, settings),
+                output_path=None,
                 single_ticker=ticker,
                 resume=resume,
             )
-            console.print("[green]Fetch done[/green]")
+            console.print(f"[green]✓ Fetch complete:[/green] {success} records, [yellow]{errors} errors[/yellow]")
 
-        elif choice == "2":
-            if not confirm_action("Convert"):
+        elif choice == "5":  # Convert
+            if not confirm_action("Convert Formats"):
                 continue
-            ticker = input("Ticker (blank to convert all): ").strip() or None
+            ticker = prompt_ticker("Enter ticker")
             if ticker:
                 try:
                     _convert_ticker(ticker, settings)
-                    console.print(f"[green]Convert done[/green] for {ticker}")
+                    console.print(f"[green]✓ Convert complete for {ticker}[/green]")
                 except typer.Exit:
                     console.print(f"[red]JSON file not found for {ticker}[/red]")
             else:
                 total = _convert_all_tickers(settings)
-                console.print(f"[green]Convert done[/green]: {total} tickers converted")
+                console.print(f"[green]✓ Convert complete:[/green] {total} tickers converted")
 
-        elif choice == "3":
-            if not confirm_action("Validate"):
+        elif choice == "6":  # Validate
+            if not confirm_action("Validate Data"):
                 continue
-            mapping = input(f"Mapping path [{settings.paths.mapping_path}]: ").strip()
-            ticker = input("Ticker (blank to validate all): ").strip() or None
-            mapping_path = Path(mapping) if mapping else None
+            ticker = prompt_ticker("Enter ticker")
             try:
-                _run_validation(settings, mapping_path, None, ticker)
+                _run_validation(settings, None, None, ticker)
             except typer.Exit:
                 pass  # Errors already displayed
 
-        elif choice == "4":
-            if not confirm_action("Analytics"):
+        elif choice == "7":  # Analytics
+            if not confirm_action("Run Analytics"):
                 continue
-            ticker = input("Ticker (required): ").strip()
+            ticker = prompt_ticker("Enter ticker", allow_blank=False)
             if not ticker:
-                console.print("[red]Ticker is required[/red]")
                 continue
-            json_file = input("JSON path (blank for default): ").strip()
-            horizon = input("Horizon days (default 63): ").strip()
-            json_path = Path(json_file) if json_file else None
-            horizon_days = int(horizon) if horizon else 63
+            horizon_input = input("Horizon days (default 63): ").strip()
+            horizon_days = int(horizon_input) if horizon_input else 63
             try:
-                json_file_path = json_path or _resolve_json_file(None, ticker, settings)
+                json_file_path = _resolve_json_file(None, ticker, settings)
                 _ensure_json_exists(json_file_path, ticker)
-                # Get stock price insights path from settings
                 ticker_paths = settings.paths.get_ticker_paths(ticker)
                 stock_price_json = ticker_paths.get("json_stock_price")
-                result = analytics_from_json(json_file_path, ticker=ticker, horizon_days=horizon_days, stock_price_json_path=stock_price_json)
+                result = analytics_from_json(
+                    json_file_path, 
+                    ticker=ticker, 
+                    horizon_days=horizon_days, 
+                    stock_price_json_path=stock_price_json
+                )
                 console.print_json(data=result)
             except typer.Exit:
                 pass  # Error already displayed
-        elif choice == "5":
-            if not confirm_action("Fix mapping IDs"):
+
+        # Utilities
+        elif choice == "8":  # Status
+            _display_status(settings)
+            input("\nPress Enter to continue...")
+
+        elif choice == "9":  # List
+            status = _get_project_status(settings)
+            if not status["ticker_details"]:
+                console.print("[yellow]No tickers found[/yellow]")
+            else:
+                table = Table(title="All Tickers")
+                table.add_column("Ticker", style="cyan")
+                table.add_column("Name", style="white")
+                table.add_column("Status", style="green")
+                for detail in status["ticker_details"]:
+                    formats = []
+                    if detail["has_json"]:
+                        formats.append("JSON")
+                    if detail["has_csv"]:
+                        formats.append("CSV")
+                    if detail["has_parquet"]:
+                        formats.append("Parquet")
+                    if detail["has_sql"]:
+                        formats.append("SQL")
+                    status_text = ", ".join(formats) if formats else "[red]No data[/red]"
+                    if len(formats) == 4:
+                        status_text = "[green]Complete[/green]"
+                    table.add_row(detail["ticker"], detail["name"], status_text)
+                console.print(table)
+            input("\nPress Enter to continue...")
+
+        elif choice == "f":  # Fix Mapping
+            if not confirm_action("Fix Mapping IDs"):
                 continue
-            mapping = input(f"Mapping path [{settings.paths.mapping_path}]: ").strip()
-            backup = input(
-                "Backup path (blank for default ticker_mapping.backup.json): "
-            ).strip()
-            mapping_path = _resolve_mapping_path(Path(mapping) if mapping else None, settings)
-            backup_path = (
-                Path(backup)
-                if backup
-                else mapping_path.parent / "ticker_mapping.backup.json"
-            )
+            mapping_path = _resolve_mapping_path(None, settings)
+            backup_path = mapping_path.parent / "ticker_mapping.backup.json"
             total = fix_mapping_ids(mapping_path, backup_path)
-            console.print(f"[green]Mapping IDs fixed[/green]: {total} records. Backup: {backup_path}")
+            console.print(f"[green]✓ Mapping IDs fixed:[/green] {total} records. Backup: {backup_path}")
+
         else:
-            console.print("[yellow]Invalid choice[/yellow]")
+            console.print("[yellow]Invalid choice. Please try again.[/yellow]")
 

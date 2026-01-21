@@ -7,11 +7,27 @@ services:
       dockerfile: Dockerfile
     container_name: hippocli
     volumes:
-      - ./output:/app/output
+      - ./data:/app/data
       - ./config:/app/config
     environment:
       - PYTHONUNBUFFERED=1
     command: --help
     stdin_open: true
     tty: true
+  
+  interactive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hippocli-interactive
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: shell start
+    stdin_open: true
+    tty: true
+    profiles:
+      - interactive
 

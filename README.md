@@ -218,8 +218,11 @@ Leveraging Pydantic Settings for type-safe, validated configuration with multipl
 
 - Python 3.9 or higher
 - pip or poetry for package management
+- Docker (optional, for containerized usage)
 
 ### Installation
+
+#### Local Installation
 
 ```bash
 # Clone the repository
@@ -233,36 +236,186 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### Docker Installation
+#### Docker Installation
 
 ```bash
 # Build the image
 docker build -t hippocli .
 
 # Run commands
-docker run --rm -v $(pwd)/data:/app/data hippocli fetch --ticker AAPL
+docker run --rm -v $(pwd)/data:/app/data hippocli fetch AAPL
 ```
 
-### Basic Usage
+#### Docker Compose Installation (Recommended)
+
+Using Docker Compose provides a more convenient way to manage the container:
+
+**Option 1: Using Wrapper Scripts (Easiest)**
 
 ```bash
-# Fetch data for a single ticker
-hippocli fetch --ticker AAPL
+# Make script executable (Linux/Mac)
+chmod +x scripts/hippocli.sh
 
-# Fetch all tickers from mapping file
-hippocli fetch --mapping data/mappings/ticker_mapping.json
-
-# Validate data integrity
-hippocli validate
-
-# Convert to all formats
-hippocli convert
-
-# Run analytics
-hippocli analytics AAPL --horizon 90
+# Use the wrapper script
+./scripts/hippocli.sh setup AAPL
+./scripts/hippocli.sh status
+./scripts/hippocli.sh shell start  # Interactive mode
 ```
 
+**Option 2: Using Docker Compose Directly**
+
+```bash
+# Build the image
+docker-compose build
+
+# Run commands
+docker-compose run --rm hippocli setup AAPL
+docker-compose run --rm hippocli status
+docker-compose run --rm hippocli shell start  # Interactive mode
+```
+
+**Option 3: Create an Alias (Most Convenient)**
+
+Add to your `~/.bashrc` or `~/.zshrc`:
+```bash
+alias hippocli='docker-compose run --rm hippocli'
+```
+
+Then use directly:
+```bash
+hippocli setup AAPL
+hippocli status
+hippocli shell start
+```
+
+**Note**: The Docker Compose configuration mounts `./data` and `./config` directories. The application will automatically detect the `/app/data` mount point and use it for all output files.
+
+### Command Reference
+
+#### Understanding the Commands
+
+HippoCLI offers different commands for different purposes. Here's what each command does:
+
+| Command | What It Does | When to Use |
+|---------|-------------|-------------|
+| `setup [TICKER]` | **First-time setup**: Creates mapping file + fetches data + converts + validates | Adding a new ticker for the first time |
+| `update [TICKER]` | **Full update**: Fetches + converts + validates (all steps) | Updating existing ticker(s) with latest data |
+| `fetch [TICKER]` | **Download only**: Fetches raw data from API (JSON format) | When you only need to download new data |
+| `convert [TICKER]` | **Format conversion**: Converts JSON to CSV, Parquet, SQL | After fetching, to generate other formats |
+| `validate [TICKER]` | **Data validation**: Checks data integrity and schema | To verify data quality |
+| `status` | **Project overview**: Shows tickers, files, and completion status | Check what you have and what's missing |
+| `list` | **Ticker list**: Lists all tickers with their format status | Quick view of all tickers |
+| `analytics TICKER` | **Financial analysis**: Calculates metrics and statistics | After data is ready, for insights |
+| `shell start` | **Interactive mode**: Menu-driven interface | Best for beginners or complex workflows |
+
+#### Key Differences
+
+**`setup` vs `update`:**
+- `setup` - For **new tickers** (creates mapping file if needed)
+- `update` - For **existing tickers** (assumes mapping already exists)
+
+**`update` vs individual commands:**
+- `update` - Does **everything** (fetch + convert + validate) in one command
+- Individual commands (`fetch`, `convert`, `validate`) - Do **one step** at a time
+
+**When to use what:**
+- **New ticker?** → Use `setup AAPL`
+- **Update existing?** → Use `update AAPL` or `update` (all)
+- **Only need fresh data?** → Use `fetch AAPL`
+- **Only need formats?** → Use `convert AAPL`
+- **Just checking?** → Use `status` or `list`
+
+### Quick Start Guide
+
+#### Scenario 1: Adding Your First Ticker
+
+```bash
+# One command does everything: creates mapping, fetches data, converts formats, validates
+hippocli setup AAPL
+
+# Check the results
+hippocli status
+```
+
+#### Scenario 2: Adding More Tickers
+
+```bash
+# Add another ticker
+hippocli setup MSFT
+
+# Add multiple tickers one by one
+hippocli setup GOOGL
+hippocli setup TSLA
+```
+
+#### Scenario 3: Updating Existing Data
+
+```bash
+# Update all tickers (fetch + convert + validate)
+hippocli update
+
+# Or update just one ticker
+hippocli update AAPL
+```
+
+#### Scenario 4: Step-by-Step Control
+
+If you prefer to control each step:
+
+```bash
+# Step 1: Fetch latest data
+hippocli fetch AAPL
+
+# Step 2: Convert to all formats
+hippocli convert AAPL
+
+# Step 3: Validate
+hippocli validate AAPL
+```
+
+#### Scenario 5: Interactive Mode (Recommended for Beginners)
+
+The easiest way to use HippoCLI:
+
+```bash
+# Start interactive mode
+hippocli shell start
+
+# Or with Docker
+./scripts/hippocli.sh shell start
+```
+
+The interactive menu guides you through all options with clear descriptions.
+
 ---
+
+## Interactive Mode Guide
+
+The interactive mode (`hippocli shell start`) provides an intuitive menu-driven interface:
+
+### Main Menu Options
+
+1. **Quick Start** - Complete setup for a new ticker (fetch + convert + validate)
+2. **Update All** - Update all tickers (fetch + convert + validate)
+3. **Full Pipeline** - Complete workflow for a specific ticker
+4. **Fetch Data** - Download company data
+5. **Convert Formats** - Convert JSON to CSV, Parquet, SQL
+6. **Validate Data** - Check data integrity
+7. **Run Analytics** - Calculate financial metrics
+8. **View Status** - Display project status
+9. **List Tickers** - Show all tickers with their status
+10. **Fix Mapping IDs** - Repair mapping file IDs
+
+### Features
+
+- **Status Summary** - Always visible at the top showing:
+  - Number of tickers in mapping
+  - Tickers with data
+  - Tickers with complete formats
+  
+- **Progress Indicators** - Visual feedback for long-running operations
+
+- **Error Handling** - Clear error messages with suggestions
 
 ## Project Structure
 
@@ -276,6 +429,9 @@ HippoCLI/
 │   ├── analytics.py      # Financial metrics computation
 │   ├── config.py         # Configuration management
 │   └── models.py         # Pydantic data models
+├── scripts/              # Wrapper scripts for Docker
+│   ├── hippocli.sh      # Linux/Mac wrapper
+│   └── hippocli.bat      # Windows wrapper
 ├── config/               # Configuration files
 ├── tests/                # Test suite
 ├── static/               # Documentation assets

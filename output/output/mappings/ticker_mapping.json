@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "name": "AAPL",
+    "ticker": "AAPL"
+  },
+  {
+    "id": "2",
+    "name": "MSFT",
+    "ticker": "MSFT"
+  },
+  {
+    "id": "3",
+    "name": "AMZN",
+    "ticker": "AMZN"
+  },
+  {
+    "id": "4",
+    "name": "TSLA",
+    "ticker": "TSLA"
+  }
+]
