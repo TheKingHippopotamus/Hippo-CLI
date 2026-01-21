@@ -14,6 +14,23 @@
 
 ---
 
+## ⚡ Quick Start (30 seconds)
+
+**For first-time users:**
+
+```bash
+git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
+cd Hippo-CLI
+./scripts/install.sh
+./scripts/quick-start.sh AAPL
+```
+
+That's it! You're ready to use HippoCLI.
+
+📖 **New to Docker or need more help?** See [GETTING_STARTED.md](GETTING_STARTED.md) for a complete beginner's guide with step-by-step instructions.
+
+---
+
 ## The Story Behind HippoCLI
 
 As a developer with a passion for financial markets, I found myself repeatedly wrestling with fragmented data sources, inconsistent formats, and manual data transformation workflows. What started as a weekend project to automate my personal investment research quickly evolved into a comprehensive data engineering solution.
@@ -216,62 +233,101 @@ Leveraging Pydantic Settings for type-safe, validated configuration with multipl
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip or poetry for package management
-- Docker (optional, for containerized usage)
+**Required:**
+- Docker Desktop or Docker Engine (version 20.10+)
+- Git (to clone the repository)
 
-### Installation
+**Optional:**
+- Python 3.9+ (for local installation without Docker)
 
-#### Local Installation
+### 🚀 Quick Installation (Recommended)
+
+**For first-time users - just 2 commands:**
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
 cd Hippo-CLI
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install the package
-pip install -e .
+# 2. Run the installation script (does everything automatically)
+./scripts/install.sh
 ```
 
-#### Docker Installation
+That's it! The script will:
+- ✅ Check Docker installation
+- ✅ Create all required directories
+- ✅ Setup .env file
+- ✅ Build Docker image
+- ✅ Verify everything works
+
+**Then get started immediately:**
 
 ```bash
-# Build the image
-docker build -t hippocli .
+# Quick start with your first ticker
+./scripts/quick-start.sh AAPL
 
-# Run commands
-docker run --rm -v $(pwd)/data:/app/data hippocli fetch AAPL
-```
-
-#### Docker Compose Installation (Recommended)
-
-Using Docker Compose provides a more convenient way to manage the container:
-
-**Option 1: Using Wrapper Scripts (Easiest)**
-
-```bash
-# Make script executable (Linux/Mac)
-chmod +x scripts/hippocli.sh
-
-# Use the wrapper script
+# Or use the wrapper script
 ./scripts/hippocli.sh setup AAPL
-./scripts/hippocli.sh status
-./scripts/hippocli.sh shell start  # Interactive mode
 ```
 
-**Option 2: Using Docker Compose Directly**
+### 📋 Manual Installation
+
+If you prefer manual setup or the script doesn't work:
+
+#### Step 1: Clone Repository
 
 ```bash
-# Build the image
+git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
+cd Hippo-CLI
+```
+
+#### Step 2: Setup Environment
+
+```bash
+# Create required directories
+mkdir -p data/mappings data/json data/csv data/parquet data/sql
+mkdir -p config
+
+# Make scripts executable
+chmod +x scripts/*.sh
+```
+
+#### Step 3: Build Docker Image
+
+```bash
+# Using docker-compose (recommended)
 docker-compose build
 
-# Run commands
+# Or using docker directly
+docker build -t hippocli .
+```
+
+#### Step 4: Verify Installation
+
+```bash
+# Test the installation
+./scripts/hippocli.sh status
+
+# Or directly
+docker-compose run --rm hippocli status
+```
+
+### 💡 Usage Options
+
+**Option 1: Wrapper Script (Easiest)**
+
+```bash
+./scripts/hippocli.sh setup AAPL
+./scripts/hippocli.sh status
+./scripts/hippocli.sh shell start
+```
+
+**Option 2: Docker Compose Directly**
+
+```bash
 docker-compose run --rm hippocli setup AAPL
 docker-compose run --rm hippocli status
-docker-compose run --rm hippocli shell start  # Interactive mode
+docker-compose run --rm hippocli shell start
 ```
 
 **Option 3: Create an Alias (Most Convenient)**
@@ -288,7 +344,31 @@ hippocli status
 hippocli shell start
 ```
 
-**Note**: The Docker Compose configuration mounts `./data` and `./config` directories. The application will automatically detect the `/app/data` mount point and use it for all output files.
+### 📝 Local Installation (Without Docker)
+
+If you prefer not to use Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/TheKingHippopotamus/Hippo-CLI.git
+cd Hippo-CLI
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package
+pip install -e .
+
+# Use directly
+hippocli setup AAPL
+hippocli status
+```
+
+**Common Issues:**
+- If you get permission errors: `chmod +x scripts/hippocli.sh`
+- If Docker isn't found: Make sure Docker Desktop is running
+- If `.env` file has errors: See [Troubleshooting Guide](TROUBLESHOOTING.md)
+- For more help: Check `TROUBLESHOOTING.md`
 
 ### Command Reference
 
@@ -325,7 +405,19 @@ HippoCLI offers different commands for different purposes. Here's what each comm
 - **Only need formats?** → Use `convert AAPL`
 - **Just checking?** → Use `status` or `list`
 
-### Quick Start Guide
+### 🎯 Quick Start Guide
+
+#### The Fastest Way: Quick Start Script
+
+```bash
+# One command to get started with your first ticker
+./scripts/quick-start.sh AAPL
+```
+
+This will:
+1. Check if installation is needed (runs install.sh if needed)
+2. Setup your first ticker (fetch + convert + validate)
+3. Show you what's next
 
 #### Scenario 1: Adding Your First Ticker
 
@@ -386,6 +478,49 @@ hippocli shell start
 ```
 
 The interactive menu guides you through all options with clear descriptions.
+
+---
+
+## Troubleshooting
+
+If you encounter issues, see the [Troubleshooting Guide](TROUBLESHOOTING.md) for common problems and solutions.
+
+### Quick Fixes
+
+**Permission denied:**
+```bash
+chmod +x scripts/hippocli.sh
+```
+
+**Docker not found:**
+- Make sure Docker Desktop is running
+- Check: `docker ps`
+
+**Build fails:**
+```bash
+docker-compose build --no-cache
+```
+
+**`.env` file errors:**
+- Delete or rename `.env` if you don't need it
+- Or fix format: `KEY=value` (no spaces in keys)
+
+**First time on a new machine:**
+```bash
+# 1. Make script executable
+chmod +x scripts/hippocli.sh
+
+# 2. Create directories
+mkdir -p data/mappings data/json data/csv data/parquet data/sql
+
+# 3. Build
+docker-compose build
+
+# 4. Test
+./scripts/hippocli.sh status
+```
+
+For more detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ---
 

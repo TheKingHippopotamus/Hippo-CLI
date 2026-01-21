@@ -1,31 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-.venv
 *.egg-info/
 dist/
 build/
-.git/
-.github/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
 .vscode/
 .idea/
-*.log
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output directories (don't copy these, they're mounted as volumes)
+output/
+data/
+
+# Test files
+tests/
 .pytest_cache/
 .coverage
 htmlcov/
-.mypy_cache/
-.ruff_cache/
-data/
-*.csv
-*.json
-*.ndjson
-*.parquet
-*.sql
-.env
-.env.local
 
+# Documentation
+*.md
+!README.md
+
+# Scripts (not needed in container)
+scripts/
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
