@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from pydantic import ValidationError
 
@@ -124,13 +124,6 @@ def validate_json(json_path: Path) -> Tuple[int, List[str]]:
     return count, errors
 
 
-def validate_all(mapping_path: Path, ndjson_path: Path) -> List[str]:
-    """Run mapping and NDJSON validation; return error list."""
-    _, map_errors = validate_mapping(mapping_path)
-    _, ndjson_errors = validate_ndjson(ndjson_path)
-    return map_errors + ndjson_errors
-
-
 def fix_mapping_ids(mapping_path: Path, backup_path: Optional[Path] = None) -> int:
     """
     Re-sequence mapping IDs to be 1..N in file order.
@@ -158,8 +151,4 @@ def fix_mapping_ids(mapping_path: Path, backup_path: Optional[Path] = None) -> i
     logger.info("Re-sequenced %d records in %s", total, mapping_path)
     return total
 
-
-def iter_errors(errors: Iterable[str]) -> None:
-    for err in errors:
-        logger.error(err)
 
