@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import polars as pl
 
-from .logging_config import get_logger
 from .converter import read_json
+from .logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -101,7 +101,7 @@ def analytics_from_json(
         
         metrics = compute_price_metrics(prices, horizon_days=horizon_days)
         metrics["ticker"] = ticker.upper()
-        metrics["generated_at"] = datetime.utcnow().isoformat()
+        metrics["generated_at"] = datetime.now(timezone.utc).isoformat()
         return metrics
     except Exception as exc:
         logger.error("Error reading stock price data: %s", exc)

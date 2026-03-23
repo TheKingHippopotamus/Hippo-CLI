@@ -1,0 +1,12 @@
+[
+  {"company_id": 1, "ticker": "ACME", "ts": 1704067200, "value": 150.00, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 1, "ticker": "ACME", "ts": 1704153600, "value": 152.50, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 1, "ticker": "ACME", "ts": 1704240000, "value": 148.75, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 1, "ticker": "ACME", "ts": 1704326400, "value": 155.00, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 1, "ticker": "ACME", "ts": 1704412800, "value": 153.25, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 2, "ticker": "TEST", "ts": 1704067200, "value": 45.00, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 2, "ticker": "TEST", "ts": 1704153600, "value": 46.25, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 2, "ticker": "TEST", "ts": 1704240000, "value": 44.80, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 2, "ticker": "TEST", "ts": 1704326400, "value": 47.10, "interval": 86400, "valueUnit": "USD"},
+  {"company_id": 2, "ticker": "TEST", "ts": 1704412800, "value": 46.50, "interval": 86400, "valueUnit": "USD"}
+]

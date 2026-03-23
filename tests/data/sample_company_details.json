@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Acme Corp",
+    "ticker": "ACME",
+    "sector": "Technology",
+    "industry": "Software",
+    "description": "Acme Corp is a leading software company.",
+    "indices": ["S&P 500"],
+    "exchanges": ["NYSE"],
+    "aggregations": {
+      "marketCap": 50000000000,
+      "peRatio": 25.4,
+      "dividendYield": 1.2
+    },
+    "insights": {},
+    "lastUpdated": {
+      "companyDetails": "2025-01-15T10:30:00Z",
+      "stockPrice": "2025-01-15T10:30:00Z"
+    }
+  },
+  {
+    "id": 2,
+    "name": "Test Corp",
+    "ticker": "TEST",
+    "sector": "Finance",
+    "industry": "Banking",
+    "description": "Test Corp is a regional banking institution.",
+    "indices": [],
+    "exchanges": ["NASDAQ"],
+    "aggregations": {
+      "marketCap": 5000000000,
+      "peRatio": 12.8,
+      "dividendYield": 3.5
+    },
+    "insights": {},
+    "lastUpdated": {
+      "companyDetails": "2025-01-14T08:00:00Z",
+      "stockPrice": "2025-01-14T08:00:00Z"
+    }
+  }
+]

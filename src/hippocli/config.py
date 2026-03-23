@@ -28,6 +28,11 @@ def _get_output_base_dir() -> Path:
     if docker_output_dir.exists():
         return docker_output_dir
     
+    # Check for REPO_ROOT/data (local data directory, mirrors Docker mount structure)
+    local_data_dir = REPO_ROOT / "data"
+    if local_data_dir.exists():
+        return local_data_dir
+
     # Fall back to REPO_ROOT / "output" for local development
     return REPO_ROOT / "output"
 
@@ -117,18 +122,8 @@ def load_settings(config_path: Optional[Path] = None) -> AppSettings:
                 path_value = paths_data[key]
                 if isinstance(path_value, str):
                     path_obj = Path(path_value)
-                    # If relative path, resolve relative to output base
                     if not path_obj.is_absolute():
-                        # If path starts with "output/", strip it when using Docker data dir
-                        path_str = str(path_obj)
-                        if str(output_base) == "/app/data" and path_str.startswith("output/"):
-                            # Remove "output/" prefix for Docker mount
-                            path_str = path_str[7:]  # len("output/") = 7
-                            paths_data[key] = str(output_base / path_str)
-                        else:
-                            paths_data[key] = str(output_base / path_obj)
-                    else:
-                        paths_data[key] = path_value
+                        paths_data[key] = str(output_base / path_obj)
 
     settings = AppSettings(**data)
     settings.paths.ensure_output_dirs()

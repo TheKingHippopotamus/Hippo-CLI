@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -20,7 +19,7 @@ from .converter import (
 )
 from .fetcher import fetch_and_write
 from .logging_config import setup_logging
-from .validator import fix_mapping_ids, load_mapping, validate_mapping, validate_json
+from .validator import fix_mapping_ids, load_mapping, validate_json, validate_mapping
 
 console = Console()
 app = typer.Typer(
@@ -422,6 +421,7 @@ def fix_mapping(
         None, "--backup", help="Optional backup file path."
     ),
 ) -> None:
+    """Re-sequence ticker mapping IDs to 1..N."""
     settings: AppSettings = ctx.obj["settings"]
     mapping = _resolve_mapping_path(mapping_path, settings)
     backup = backup_path or (mapping.parent / "ticker_mapping.backup.json")
@@ -463,6 +463,7 @@ def analytics(
     json_path: Optional[Path] = typer.Option(None, "--json", help="Source JSON file (defaults to ticker directory)."),
     horizon_days: int = typer.Option(63, "--horizon", help="Rolling days to consider."),
 ) -> None:
+    """Compute financial analytics for a ticker."""
     settings: AppSettings = ctx.obj["settings"]
     json_file = json_path or _resolve_json_file(None, ticker, settings)
     _ensure_json_exists(json_file, ticker)
