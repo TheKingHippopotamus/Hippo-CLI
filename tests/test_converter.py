@@ -9,12 +9,11 @@ import pytest
 
 from hippocli.converter import (
     json_to_csv,
+    json_to_json_array,
     json_to_parquet,
     json_to_sql,
-    json_to_json_array,
     read_json,
 )
-
 
 DATA_DIR = Path(__file__).parent / "data"
 COMPANY_JSON = DATA_DIR / "sample_company_details.json"

@@ -6,9 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hippocli.validator import validate_mapping, validate_json, load_mapping
-from hippocli.models import TickerEntry, CompanyRecord
-
+from hippocli.models import CompanyRecord, TickerEntry
+from hippocli.validator import load_mapping, validate_json, validate_mapping
 
 DATA_DIR = Path(__file__).parent / "data"
 

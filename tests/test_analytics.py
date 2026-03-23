@@ -1,13 +1,9 @@
 """Tests for hippocli.analytics module."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import pytest
-
 from hippocli.analytics import analytics_from_json, compute_price_metrics
-
 
 DATA_DIR = Path(__file__).parent / "data"
 COMPANY_JSON = DATA_DIR / "sample_company_details.json"
