@@ -37,4 +37,3 @@ class CompanyRecord(BaseModel):
     @classmethod
     def uppercase_ticker(cls, value: str) -> str:
         return value.strip().upper()
-

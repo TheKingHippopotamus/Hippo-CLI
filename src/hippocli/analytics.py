@@ -52,10 +52,13 @@ def compute_price_metrics(prices: List[float], horizon_days: int = 63) -> Dict[s
 
 
 def analytics_from_json(
-    json_path: Path, ticker: str, horizon_days: int = 63, stock_price_json_path: Optional[Path] = None
+    json_path: Path,
+    ticker: str,
+    horizon_days: int = 63,
+    stock_price_json_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Calculate analytics from JSON files.
-    
+
     Args:
         json_path: Path to company details JSON file (used for ticker validation)
         ticker: Ticker symbol
@@ -74,16 +77,19 @@ def analytics_from_json(
         # Infer from company details path: .../AAPL/AAPL_company_details.json -> .../AAPL/AAPL_stock_price_insights.json
         ticker_upper = ticker.upper()
         stock_price_json_path = json_path.parent / f"{ticker_upper}_stock_price_insights.json"
-    
+
     # Read stock price data
     if not stock_price_json_path.exists():
-        return {"ticker": ticker.upper(), "error": f"Stock price data not found: {stock_price_json_path}"}
-    
+        return {
+            "ticker": ticker.upper(),
+            "error": f"Stock price data not found: {stock_price_json_path}",
+        }
+
     try:
         stock_price_df = read_json(stock_price_json_path)
         if stock_price_df.is_empty():
             return {"ticker": ticker.upper(), "error": "No stock price data available"}
-        
+
         # Extract prices from stock price data
         # Stock price data format: [{"company_id": 1, "ticker": "AAPL", "ts": ..., "value": 175.43, ...}, ...]
         prices = []
@@ -95,10 +101,10 @@ def analytics_from_json(
             # Fallback: try to extract from dict format
             stock_price_records = stock_price_df.to_dicts()
             prices = _extract_prices_from_stock_price_data(stock_price_records)
-        
+
         if not prices:
             return {"ticker": ticker.upper(), "error": "No valid price data found"}
-        
+
         metrics = compute_price_metrics(prices, horizon_days=horizon_days)
         metrics["ticker"] = ticker.upper()
         metrics["generated_at"] = datetime.now(timezone.utc).isoformat()
@@ -106,4 +112,3 @@ def analytics_from_json(
     except Exception as exc:
         logger.error("Error reading stock price data: %s", exc)
         return {"ticker": ticker.upper(), "error": f"Error processing stock price data: {exc}"}
-

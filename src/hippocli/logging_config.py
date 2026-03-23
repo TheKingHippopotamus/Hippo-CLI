@@ -21,4 +21,3 @@ def get_logger(name: Optional[str] = None, level: str = "INFO") -> logging.Logge
     if not logging.getLogger().handlers:
         setup_logging(level)
     return logging.getLogger(name or __name__)
-

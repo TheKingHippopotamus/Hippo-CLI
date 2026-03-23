@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def _get_output_base_dir() -> Path:
     """Determine the base directory for output storage.
-    
+
     Checks for /app/data first (Docker mount), then /app/output, then REPO_ROOT.
     When using /app/data, paths are relative to it directly (not /app/data/output).
     """
@@ -22,12 +22,12 @@ def _get_output_base_dir() -> Path:
     docker_data_dir = Path("/app/data")
     if docker_data_dir.exists():
         return docker_data_dir
-    
+
     # Check for /app/output (alternative Docker mount point)
     docker_output_dir = Path("/app/output")
     if docker_output_dir.exists():
         return docker_output_dir
-    
+
     # Check for REPO_ROOT/data (local data directory, mirrors Docker mount structure)
     local_data_dir = REPO_ROOT / "data"
     if local_data_dir.exists():
@@ -45,9 +45,7 @@ class PathSettings(BaseModel):
     mapping_path: Path = Field(
         default_factory=lambda: _get_output_base_dir() / "mappings" / "ticker_mapping.json"
     )
-    json_output_dir: Path = Field(
-        default_factory=lambda: _get_output_base_dir() / "json"
-    )
+    json_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "json")
     csv_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "csv")
     parquet_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "parquet")
     sql_output_dir: Path = Field(default_factory=lambda: _get_output_base_dir() / "sql")
@@ -58,19 +56,29 @@ class PathSettings(BaseModel):
         self.csv_output_dir.mkdir(parents=True, exist_ok=True)
         self.parquet_output_dir.mkdir(parents=True, exist_ok=True)
         self.sql_output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def get_ticker_paths(self, ticker: str) -> dict[str, Path]:
         """Get all output paths for a specific ticker."""
         ticker_upper = ticker.strip().upper()
         return {
             "json": self.json_output_dir / ticker_upper / f"{ticker_upper}_company_details.json",
-            "json_stock_price": self.json_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.json",
+            "json_stock_price": self.json_output_dir
+            / ticker_upper
+            / f"{ticker_upper}_stock_price_insights.json",
             "csv": self.csv_output_dir / ticker_upper / f"{ticker_upper}_company_details.csv",
-            "csv_stock_price": self.csv_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.csv",
-            "parquet": self.parquet_output_dir / ticker_upper / f"{ticker_upper}_company_details.parquet",
-            "parquet_stock_price": self.parquet_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.parquet",
+            "csv_stock_price": self.csv_output_dir
+            / ticker_upper
+            / f"{ticker_upper}_stock_price_insights.csv",
+            "parquet": self.parquet_output_dir
+            / ticker_upper
+            / f"{ticker_upper}_company_details.parquet",
+            "parquet_stock_price": self.parquet_output_dir
+            / ticker_upper
+            / f"{ticker_upper}_stock_price_insights.parquet",
             "sql": self.sql_output_dir / ticker_upper / f"{ticker_upper}_company_details.sql",
-            "sql_stock_price": self.sql_output_dir / ticker_upper / f"{ticker_upper}_stock_price_insights.sql",
+            "sql_stock_price": self.sql_output_dir
+            / ticker_upper
+            / f"{ticker_upper}_stock_price_insights.sql",
         }
 
 
@@ -117,7 +125,13 @@ def load_settings(config_path: Optional[Path] = None) -> AppSettings:
     output_base = _get_output_base_dir()
     if "paths" in data and isinstance(data["paths"], dict):
         paths_data = data["paths"]
-        for key in ["mapping_path", "json_output_dir", "csv_output_dir", "parquet_output_dir", "sql_output_dir"]:
+        for key in [
+            "mapping_path",
+            "json_output_dir",
+            "csv_output_dir",
+            "parquet_output_dir",
+            "sql_output_dir",
+        ]:
             if key in paths_data:
                 path_value = paths_data[key]
                 if isinstance(path_value, str):
@@ -143,4 +157,3 @@ def load_settings_with_env(
             if val is not None:
                 os.environ[key] = val
     return load_settings(config_path)
-

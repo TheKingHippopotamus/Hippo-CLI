@@ -36,32 +36,34 @@ def save_mapping(mapping_path: Path, entries: List[TickerEntry]) -> None:
     logger.info("Saved %d entries to mapping file: %s", len(entries), mapping_path)
 
 
-def add_ticker_to_mapping(mapping_path: Path, ticker: str, name: Optional[str] = None) -> TickerEntry:
+def add_ticker_to_mapping(
+    mapping_path: Path, ticker: str, name: Optional[str] = None
+) -> TickerEntry:
     """Add a new ticker to the mapping file. Returns the created entry."""
     records = load_mapping(mapping_path) if mapping_path.exists() else []
-    
+
     # Check if ticker already exists
     ticker_upper = ticker.strip().upper()
     for rec in records:
         if rec.ticker == ticker_upper:
             logger.info("Ticker %s already exists in mapping", ticker_upper)
             return rec
-    
+
     # Find next available ID (convert to int for comparison)
     existing_ids = {int(rec.id) for rec in records}
     next_id_int = max(existing_ids, default=0) + 1
-    
+
     # Create new entry (id will be int in model, converted to string when saving)
     new_entry = TickerEntry(
         id=next_id_int,
         name=name or ticker_upper,
         ticker=ticker_upper,
     )
-    
+
     # Add to records and save
     records.append(new_entry)
     save_mapping(mapping_path, records)
-    
+
     logger.info("Added ticker %s to mapping with ID %s", ticker_upper, next_id_int)
     return new_entry
 
@@ -100,16 +102,18 @@ def validate_json(json_path: Path) -> Tuple[int, List[str]]:
     try:
         with json_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # Handle both array and single object
         if isinstance(data, list):
             records = data
         elif isinstance(data, dict):
             records = [data]
         else:
-            errors.append(f"Invalid JSON structure: expected array or object, got {type(data).__name__}")
+            errors.append(
+                f"Invalid JSON structure: expected array or object, got {type(data).__name__}"
+            )
             return 0, errors
-        
+
         for idx, record in enumerate(records, start=1):
             try:
                 CompanyRecord.model_validate(record)
@@ -120,7 +124,7 @@ def validate_json(json_path: Path) -> Tuple[int, List[str]]:
         errors.append(f"Invalid JSON: {exc}")
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Error reading file: {exc}")
-    
+
     return count, errors
 
 
@@ -150,5 +154,3 @@ def fix_mapping_ids(mapping_path: Path, backup_path: Optional[Path] = None) -> i
     mapping_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info("Re-sequenced %d records in %s", total, mapping_path)
     return total
-
-

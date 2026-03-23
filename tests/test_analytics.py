@@ -1,4 +1,5 @@
 """Tests for hippocli.analytics module."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,6 +14,7 @@ STOCK_PRICE_JSON = DATA_DIR / "sample_stock_price_insights.json"
 # ---------------------------------------------------------------------------
 # compute_price_metrics (unit-level)
 # ---------------------------------------------------------------------------
+
 
 class TestComputePriceMetrics:
     def test_basic_metrics(self):
@@ -49,10 +51,13 @@ class TestComputePriceMetrics:
 # analytics_from_json
 # ---------------------------------------------------------------------------
 
+
 class TestAnalyticsFromJson:
     def test_basic_analytics(self):
         result = analytics_from_json(
-            COMPANY_JSON, ticker="ACME", horizon_days=90,
+            COMPANY_JSON,
+            ticker="ACME",
+            horizon_days=90,
             stock_price_json_path=STOCK_PRICE_JSON,
         )
         assert result["ticker"] == "ACME"
@@ -61,7 +66,9 @@ class TestAnalyticsFromJson:
 
     def test_ticker_not_found(self):
         result = analytics_from_json(
-            COMPANY_JSON, ticker="ZZZZZ", horizon_days=90,
+            COMPANY_JSON,
+            ticker="ZZZZZ",
+            horizon_days=90,
             stock_price_json_path=STOCK_PRICE_JSON,
         )
         assert result["ticker"] == "ZZZZZ"
@@ -70,7 +77,9 @@ class TestAnalyticsFromJson:
 
     def test_case_insensitive_ticker(self):
         result = analytics_from_json(
-            COMPANY_JSON, ticker="acme", horizon_days=90,
+            COMPANY_JSON,
+            ticker="acme",
+            horizon_days=90,
             stock_price_json_path=STOCK_PRICE_JSON,
         )
         assert result["ticker"] == "ACME"
@@ -78,26 +87,39 @@ class TestAnalyticsFromJson:
 
     def test_missing_stock_price_file(self, tmp_path: Path):
         result = analytics_from_json(
-            COMPANY_JSON, ticker="ACME", horizon_days=90,
+            COMPANY_JSON,
+            ticker="ACME",
+            horizon_days=90,
             stock_price_json_path=tmp_path / "nonexistent.json",
         )
         assert "error" in result
 
     def test_metrics_fields_present(self):
         result = analytics_from_json(
-            COMPANY_JSON, ticker="ACME", horizon_days=90,
+            COMPANY_JSON,
+            ticker="ACME",
+            horizon_days=90,
             stock_price_json_path=STOCK_PRICE_JSON,
         )
-        for key in ("latest_price", "average_price", "high", "low",
-                     "volatility_annual", "max_drawdown_pct", "observations",
-                     "generated_at"):
+        for key in (
+            "latest_price",
+            "average_price",
+            "high",
+            "low",
+            "volatility_annual",
+            "max_drawdown_pct",
+            "observations",
+            "generated_at",
+        ):
             assert key in result, f"Missing key: {key}"
 
     def test_empty_stock_price_data(self, tmp_path: Path):
         empty_stock = tmp_path / "empty_stock.json"
         empty_stock.write_text("[]")
         result = analytics_from_json(
-            COMPANY_JSON, ticker="ACME", horizon_days=90,
+            COMPANY_JSON,
+            ticker="ACME",
+            horizon_days=90,
             stock_price_json_path=empty_stock,
         )
         assert "error" in result
@@ -107,18 +129,22 @@ class TestAnalyticsFromJson:
 # Config path resolution
 # ---------------------------------------------------------------------------
 
+
 class TestConfigPaths:
     def test_repo_root_is_valid(self):
         from hippocli.config import REPO_ROOT
+
         assert REPO_ROOT.exists()
 
     def test_path_settings_defaults(self):
         from hippocli.config import PathSettings
+
         ps = PathSettings()
         assert ps.base_dir.exists()
 
     def test_get_ticker_paths(self):
         from hippocli.config import PathSettings
+
         ps = PathSettings()
         paths = ps.get_ticker_paths("ACME")
         assert "json" in paths
@@ -132,6 +158,7 @@ class TestConfigPaths:
 
     def test_get_ticker_paths_case_insensitive(self):
         from hippocli.config import PathSettings
+
         ps = PathSettings()
         paths = ps.get_ticker_paths("  acme  ")
         assert "ACME" in str(paths["json"])

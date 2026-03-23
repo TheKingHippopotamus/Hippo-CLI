@@ -1,4 +1,5 @@
 """Configure test environment for hippocli tests."""
+
 from __future__ import annotations
 
 import sys

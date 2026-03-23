@@ -1,4 +1,5 @@
 """Tests for hippocli.validator module."""
+
 from __future__ import annotations
 
 import json
@@ -15,6 +16,7 @@ DATA_DIR = Path(__file__).parent / "data"
 # ---------------------------------------------------------------------------
 # validate_mapping
 # ---------------------------------------------------------------------------
+
 
 class TestValidateMapping:
     def test_valid_mapping(self):
@@ -37,20 +39,28 @@ class TestValidateMapping:
 
     def test_mapping_duplicate_ids(self, tmp_path: Path):
         dup = tmp_path / "dup.json"
-        dup.write_text(json.dumps([
-            {"id": 1, "name": "A", "ticker": "AAA"},
-            {"id": 1, "name": "B", "ticker": "BBB"},
-        ]))
+        dup.write_text(
+            json.dumps(
+                [
+                    {"id": 1, "name": "A", "ticker": "AAA"},
+                    {"id": 1, "name": "B", "ticker": "BBB"},
+                ]
+            )
+        )
         count, errors = validate_mapping(dup)
         assert count == 2
         assert any("Duplicate id" in e for e in errors)
 
     def test_mapping_duplicate_tickers(self, tmp_path: Path):
         dup = tmp_path / "dup.json"
-        dup.write_text(json.dumps([
-            {"id": 1, "name": "A", "ticker": "SAME"},
-            {"id": 2, "name": "B", "ticker": "SAME"},
-        ]))
+        dup.write_text(
+            json.dumps(
+                [
+                    {"id": 1, "name": "A", "ticker": "SAME"},
+                    {"id": 2, "name": "B", "ticker": "SAME"},
+                ]
+            )
+        )
         count, errors = validate_mapping(dup)
         assert count == 2
         assert any("Duplicate ticker" in e for e in errors)
@@ -74,6 +84,7 @@ class TestValidateMapping:
 # validate_json (company records)
 # ---------------------------------------------------------------------------
 
+
 class TestValidateJson:
     def test_valid_json(self):
         count, errors = validate_json(DATA_DIR / "sample_company_details.json")
@@ -96,10 +107,17 @@ class TestValidateJson:
     def test_json_single_object(self, tmp_path: Path):
         """validate_json should accept a single JSON object (not just arrays)."""
         single = tmp_path / "single.json"
-        single.write_text(json.dumps({
-            "id": 1, "name": "Solo Corp", "ticker": "SOLO",
-            "sector": "Tech", "industry": "AI",
-        }))
+        single.write_text(
+            json.dumps(
+                {
+                    "id": 1,
+                    "name": "Solo Corp",
+                    "ticker": "SOLO",
+                    "sector": "Tech",
+                    "industry": "AI",
+                }
+            )
+        )
         count, errors = validate_json(single)
         assert count == 1
         assert errors == []
@@ -123,10 +141,14 @@ class TestValidateJson:
     def test_json_partial_valid(self, tmp_path: Path):
         """Mix of valid and invalid records."""
         mixed = tmp_path / "mixed.json"
-        mixed.write_text(json.dumps([
-            {"id": 1, "name": "Good", "ticker": "GOOD"},
-            {"id": "bad_id_type"},  # missing name and ticker
-        ]))
+        mixed.write_text(
+            json.dumps(
+                [
+                    {"id": 1, "name": "Good", "ticker": "GOOD"},
+                    {"id": "bad_id_type"},  # missing name and ticker
+                ]
+            )
+        )
         count, errors = validate_json(mixed)
         assert count == 1
         assert len(errors) == 1
@@ -135,6 +157,7 @@ class TestValidateJson:
 # ---------------------------------------------------------------------------
 # load_mapping
 # ---------------------------------------------------------------------------
+
 
 class TestLoadMapping:
     def test_load_returns_ticker_entries(self):
@@ -152,6 +175,7 @@ class TestLoadMapping:
 # ---------------------------------------------------------------------------
 # Model validation
 # ---------------------------------------------------------------------------
+
 
 class TestTickerEntry:
     def test_valid(self):
@@ -177,10 +201,14 @@ class TestCompanyRecord:
 
     def test_full_record(self):
         rec = CompanyRecord(
-            id=1, name="Test", ticker="TST",
-            sector="Tech", industry="Software",
+            id=1,
+            name="Test",
+            ticker="TST",
+            sector="Tech",
+            industry="Software",
             description="A test company",
-            indices=["S&P 500"], exchanges=["NYSE"],
+            indices=["S&P 500"],
+            exchanges=["NYSE"],
             aggregations={"marketCap": 100},
             insights={"stock_price": []},
             lastUpdated={"companyDetails": "2025-01-01"},

@@ -1,4 +1,5 @@
 """Tests for hippocli.converter module."""
+
 from __future__ import annotations
 
 import json
@@ -23,6 +24,7 @@ STOCK_PRICE_JSON = DATA_DIR / "sample_stock_price_insights.json"
 # ---------------------------------------------------------------------------
 # read_json
 # ---------------------------------------------------------------------------
+
 
 class TestReadJson:
     def test_read_array(self):
@@ -59,6 +61,7 @@ class TestReadJson:
 # json_to_csv
 # ---------------------------------------------------------------------------
 
+
 class TestJsonToCsv:
     def test_basic_conversion(self, tmp_path: Path):
         csv_out = tmp_path / "company.csv"
@@ -74,7 +77,8 @@ class TestJsonToCsv:
         csv_out = tmp_path / "company.csv"
         stock_csv = tmp_path / "stock.csv"
         company_count, stock_count = json_to_csv(
-            COMPANY_JSON, csv_out,
+            COMPANY_JSON,
+            csv_out,
             stock_price_csv=stock_csv,
             stock_price_json=STOCK_PRICE_JSON,
         )
@@ -93,6 +97,7 @@ class TestJsonToCsv:
 # json_to_parquet
 # ---------------------------------------------------------------------------
 
+
 class TestJsonToParquet:
     def test_basic_conversion(self, tmp_path: Path):
         pq_out = tmp_path / "company.parquet"
@@ -108,7 +113,8 @@ class TestJsonToParquet:
         pq_out = tmp_path / "company.parquet"
         stock_pq = tmp_path / "stock.parquet"
         company_count, stock_count = json_to_parquet(
-            COMPANY_JSON, pq_out,
+            COMPANY_JSON,
+            pq_out,
             stock_price_parquet=stock_pq,
             stock_price_json=STOCK_PRICE_JSON,
         )
@@ -122,6 +128,7 @@ class TestJsonToParquet:
 # ---------------------------------------------------------------------------
 # json_to_sql
 # ---------------------------------------------------------------------------
+
 
 class TestJsonToSql:
     def test_basic_conversion(self, tmp_path: Path):
@@ -139,7 +146,8 @@ class TestJsonToSql:
         sql_out = tmp_path / "company.sql"
         stock_sql = tmp_path / "stock.sql"
         company_count, stock_count = json_to_sql(
-            COMPANY_JSON, sql_out,
+            COMPANY_JSON,
+            sql_out,
             stock_price_sql=stock_sql,
             stock_price_json=STOCK_PRICE_JSON,
         )
@@ -160,6 +168,7 @@ class TestJsonToSql:
 # json_to_json_array
 # ---------------------------------------------------------------------------
 
+
 class TestJsonToJsonArray:
     def test_roundtrip(self, tmp_path: Path):
         out = tmp_path / "out.json"
@@ -179,6 +188,7 @@ class TestJsonToJsonArray:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestConverterEdgeCases:
     def test_csv_empty_input(self, tmp_path: Path):
